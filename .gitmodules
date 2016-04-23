@@ -1,0 +1,3 @@
+[submodule "django/rawcharts/static/rawcharts/raw"]
+	path = django/rawcharts/static/rawcharts/raw
+	url = https://github.com/densitydesign/raw.git

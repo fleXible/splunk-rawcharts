@@ -1,0 +1,131 @@
+{% extends "splunkdj:base_with_app_bar.html" %}
+
+{% load splunkmvc %}
+
+{% block title %}RAW Charts{% endblock title %}
+
+{% block css %}
+
+	<link rel="stylesheet" type="text/css" href="{{STATIC_URL}}splunkjs/css/dashboard.css">
+	<style type="text/css">
+	.splunk-searchbar{
+		margin: 10px;
+	}
+.app-bar {
+    background-color: #666666;
+}
+	</style>
+	
+{% endblock css %}
+
+{% block content %}
+
+<div class="dashboard-body container-fluid main-section-body" data-role="main">
+    <div class="row">
+        <div class="span12 dashboard-header clearfix">
+            <h2>Search</h2>
+        </div>
+    </div>
+     <div class="dashboard-row">
+        <div class="dashboard-cell" style="width: 100%;">
+           <p>Please note that the search must generate results on a specific format. Please refer to examples/about menu for learning more.</p>
+        </div>
+    </div>
+    <div class="dashboard-row">
+        <div class="dashboard-cell" style="width: 100%;">
+            <div class="dashboard-panel">
+                <div class="dashboard-element">
+                    {% searchbar id="searchbar1" managerid="search1" %}
+                    {% table id="table1" managerid="search1" displayRowNumbers=1 data="results" %}
+                    <div id="cell1"></div>
+                </div>
+            </div>
+        </div>     
+    </div>
+</div>
+
+<div id="raw-charts"></div>
+
+{% endblock content%}
+
+{% block js %}
+<script>
+  
+function createIframe(){
+    // reset div contents
+    document.getElementById("raw-charts").innerHTML = "";
+      
+    // create an iframe
+    var rawframe = document.createElement("iframe");
+    rawframe.id = "rawframe";
+    rawframe.src = "{{STATIC_URL}}{{app_name}}/raw/index.html";
+    rawframe.scrolling = "no";
+    rawframe.style.border="none";
+    rawframe.width = "100%";
+    rawframe.height = "3700px";
+      
+    // insert iframe
+    document.getElementById("raw-charts").appendChild(rawframe);
+      
+};
+  
+var deps = [
+    "splunkjs/ready!",
+    "splunkjs/mvc/searchmanager"
+];
+  
+require(deps, function(mvc) {
+ 
+    // this guy handles the search/results
+    var SearchManager = require("splunkjs/mvc/searchmanager");
+ 
+    // initial search definition
+    var mainSearch = new SearchManager({
+        id: "search1",
+        //search: "startminutesago=1 index=_internal | stats c by group | head 2",
+        search: "",
+        // just to make sure
+        max_count: 999999,
+        status_buckets: 99999,
+        preview: false,
+        cache: false
+    });
+ 
+    // count: 0 needed for avoiding the 100 limit (Thanks IRC #splunk!)
+    var myResults = mainSearch.data("results", {count: 0});
+      
+    // tested with "on search:done" but unexpected results happened
+    myResults.on("data", function() { 
+          
+        // field names separated by comma
+        var searchresults = myResults.data().fields.join();
+          
+        // debug code
+        //console.log(myResults.collection());
+          
+        // loop through the result set
+        for (var i=0; i < myResults.data().rows.length; i++) {
+            searchresults = searchresults + '\n' + myResults.data().rows[i];
+        }
+          
+        // better than cookie!
+        localStorage.setItem('searchresults',searchresults);
+          
+        // search loaded, triggering iframe creation
+        createIframe();
+ 
+    });
+      
+    // keep search bar and manager in sync
+    var searchbar1 = mvc.Components.getInstance('searchbar1');
+    var search1 = mvc.Components.getInstance('search1');
+ 
+    searchbar1.on('change', function(){
+        search1.settings.unset('search');
+        search1.settings.set('search', searchbar1.val());
+    });       
+});
+  
+</script>
+  
+{% endblock js %}

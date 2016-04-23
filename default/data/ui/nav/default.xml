@@ -1,0 +1,12 @@
+<nav>
+	<view name="default" default="true"/>
+	<a href="/dj/redirector/rawcharts/home">Home</a>
+		<collection label="Chart Examples">
+			<a name="rods" href="/dj/rawcharts/rods">Rolling Origin/Destination Survey (RODS)</a>
+			<a name="brics" href="/dj/rawcharts/brics">BRICS - Internet subscribers</a>
+		</collection>
+		<collection label="About">
+			<a href="http://raw.densitydesign.org/">RAW Project Home</a>
+			<a href="https://foren6.wordpress.com/2015/02/02/rawcharts-splunk">Splunk integration details</a>
+		</collection>
+</nav>

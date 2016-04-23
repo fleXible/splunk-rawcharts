@@ -1,0 +1,167 @@
+{% extends "splunkdj:base_with_app_bar.html" %}
+
+{% load splunkmvc %}
+
+{% block title %}RAW Charts{% endblock title %}
+
+{% block css %}
+
+	<link rel="stylesheet" type="text/css" href="{{STATIC_URL}}splunkjs/css/dashboard.css">
+	<style type="text/css">
+	.splunk-searchbar{
+		margin: 10px;
+	}
+.app-bar {
+    background-color: #666666;
+}
+	</style>
+	
+{% endblock css %}
+
+{% block content %}
+
+<div class="dashboard-body container-fluid main-section-body" data-role="main">
+    <div class="row">
+        <div class="span12 dashboard-header clearfix">
+            <h2>BRICS Example</h2>
+        </div>
+    </div>
+     <div class="dashboard-row">
+        <div class="dashboard-cell" style="width: 100%;">
+        <p><h3>Data source</h3></p>
+           <p>This search takes sample data from <a href="http://data.worldbank.org/indicator/IT.NET.BBND">The World Bank data portal</a> - Fixed broadband Internet subscribers - for demonstrating the <b>Bump</b> chart, similarly to the one featured at <a href="http://www.nytimes.com/interactive/2014/08/13/upshot/where-people-in-each-state-were-born.html?_r=0">NYT</a>.</p>
+           <p>Basically, after parsing the lookup file and organizing the results, the search outputs 3 columns: <i>country, year, count</i>. The first one is between double-quotes to avoid parsing errors, since some values might contain commas.</p>
+           <p>For this example, some constraints are applied: only a few countries (<a href="http://en.wikipedia.org/wiki/BRICS">BRICS</a>) are filtered in, and the time period is also limited (year = 2000-2999).</p>
+           <p><h3>Usage</h3></p>
+           <p>Follow the steps below for generating the chart using the interactive RAW interface:</p>
+           <p>
+				<ol>
+				  <li>Select the <b>Bump Chart</b> from "Choose a Chart" section;</li>
+				  <li>Scroll down to "Map your Dimensions" section;</li>
+				  <ol>
+				  	<li>Drag and drop <i>country</i> field at "Group" placeholder;</li>
+				  	<li>Drag and drop <i>year</i> field at "Date" placeholder;</li>
+				  	<li>Drag and drop <i>count</i> field at "Size" placeholder;</li>				  	
+				  </ol>
+				  <li>Scroll down to "Customize your Visualization" section;</li>
+				  <ol>
+				  	<li>Adjust the chart's width to fit the window size by clicking the "Fit to width" icon just beside <i>width</i> setting label;</li>
+				  	<li>Check "Normalize" option just below "Padding" settings;</li>
+				  	<li>Optionally, make any customizations (color, sizes, sorting, etc) to the chart.</li>
+				  </ol>
+				</ol> 
+			<p><b>Note:</b> some Firefox versions might not render labels correctly.</p>	
+           </p>
+           <p>&nbsp;</p>
+        </div>
+    </div>
+    <div class="dashboard-row">
+        <div class="dashboard-cell" style="width: 100%;">
+            <div class="dashboard-panel">
+                <div class="dashboard-element">
+                    {% searchbar id="searchbar1" managerid="search1" %}
+                    {% table id="table1" managerid="search1" displayRowNumbers=1 data="results" %}
+                    <div id="cell1"></div>
+                </div>
+            </div>
+        </div>     
+    </div>
+</div>
+
+<div id="raw-charts"></div>
+
+{% endblock content%}
+
+{% block js %}
+<script>
+  
+function createIframe(){
+    // reset div contents
+    document.getElementById("raw-charts").innerHTML = "";
+      
+    // create an iframe
+    var rawframe = document.createElement("iframe");
+    rawframe.id = "rawframe";
+    rawframe.src = "{{STATIC_URL}}{{app_name}}/raw/index.html";
+    rawframe.scrolling = "no";
+    rawframe.style.border="none";
+    rawframe.width = "100%";
+    rawframe.height = "3700px";
+      
+    // insert iframe
+    document.getElementById("raw-charts").appendChild(rawframe);
+      
+};
+  
+var deps = [
+    "splunkjs/ready!",
+    "splunkjs/mvc/searchmanager"
+];
+    
+    require(deps, function(mvc) {
+    
+    	var mysearch = '| inputlookup it.net.bbnd_Indicator_en_csv_v2.csv ' +
+		'\n| table 2*' +
+		'\n| stats dc(*) as * | transpose | table column' +
+		'\n| map [ | inputlookup it.net.bbnd_Indicator_en_csv_v2.csv' +
+		'\n  | rename "Country Name" as country' +
+		'\n  | where (country="Brazil" OR country="Russian Federation" OR country="India" OR country="China" OR country="South Africa")' +
+		'\n  | stats list("$column$") AS count by country' +
+		'\n  | where count>0' +
+		'\n  | eval year="$column$" ]' +
+		'\n| eval country="\\"".country."\\""' +
+		'\n| table country year count'
+
+    // this guy handles the search/results
+    var SearchManager = require("splunkjs/mvc/searchmanager");
+ 
+    // initial search definition
+    var mainSearch = new SearchManager({
+        id: "search1",
+        //search: "startminutesago=1 index=_internal | stats c by group | head 2",
+        search: mysearch,
+        // just to make sure
+        max_count: 999999,
+        status_buckets: 99999,
+        preview: false,
+        cache: false
+    });
+ 
+    // count: 0 needed for avoiding the 100 limit (Thanks IRC #splunk!)
+    var myResults = mainSearch.data("results", {count: 0});
+      
+    // tested with "on search:done" but unexpected results happened
+    myResults.on("data", function() { 
+          
+        // field names separated by comma
+        var searchresults = myResults.data().fields.join();
+          
+        // debug code
+        //console.log(myResults.collection());
+          
+        // loop through the result set
+        for (var i=0; i < myResults.data().rows.length; i++) {
+            searchresults = searchresults + '\n' + myResults.data().rows[i];
+        }
+          
+        // better than cookie!
+        localStorage.setItem('searchresults',searchresults);
+          
+        // search loaded, triggering iframe creation
+        createIframe();
+ 
+    });
+      
+    // keep search bar and manager in sync
+    var searchbar1 = mvc.Components.getInstance('searchbar1');
+    var search1 = mvc.Components.getInstance('search1');
+ 
+    searchbar1.on('change', function(){
+        search1.settings.unset('search');
+        search1.settings.set('search', searchbar1.val());
+    });       
+});
+  
+</script>
+  
+{% endblock js %}
