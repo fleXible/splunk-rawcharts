@@ -1,3 +1,43 @@
+.navbar {
+    padding: 0;
+}
+
+.container {
+    margin-right: 0;
+    margin-left: 0;
+    width: 100% !important;
+}
+
+@media (min-width: 768px)
+.navbar-nav>li>a {
+    padding-bottom: 0;
+}
+
+section {
+    padding: 0;
+}
+
+#data {
+    display: none;
+}
+
+div.container div div.CodeMirror {
+    display: none;
+}
+
+.wrap {
+    margin: 0 auto 0;
+    padding-bottom: 0;
+}
+
+#export {
+    display: none;
+}
+
+#footer {
+    padding: 0;
+}
+
 .main-area {
     border: 1px solid black;
 }
