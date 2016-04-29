@@ -20,6 +20,11 @@ a missing link between spreadsheet applications and vector graphics editors.
 
 More info is found here: http://raw.densitydesign.org
 
+Building
+--------
+To build the application, just run build.sh this will result in the creation of
+rawcharts.spl which is a tar.gz file.
+
 Installation
 ------------
 Installation is quite straightforward, simply uncompress the tarball/package into
